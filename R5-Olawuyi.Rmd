@@ -1,0 +1,217 @@
+---
+title: "R5-HypothesisTesting"
+author: "OGabriel"
+date: "03/11/2020"
+output: 
+  html_document:
+     toc: yes
+---
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+  fig.path = "results/figs/",       # Path to save figures
+  dev = "png",                      # png Figures format
+  dpi = 100  
+)
+
+#install.packages("agricolae")
+```
+
+## Exercise 1: 
+For the data InsectSpray, make a table for the number of insects for each spray with the mean, median and standard error.
+
+###  Summary of the data InsectSpray for a general overview of the data
+
+```{r, echo=FALSE}
+data("InsectSprays")
+summary(InsectSprays)
+
+Spray <- character()
+Mean <- Standard_error <- Median <-Insect_Number <-  numeric()
+for (x in levels(InsectSprays$spray)){
+    Spray <- c(Spray, x)
+    j <- InsectSprays$count[InsectSprays$spray == x]
+    Insect_Number <- c(Insect_Number, sum(j))
+    Mean <- round(c(Mean, mean(j)), 2)
+    Standard_error <- round(c(Standard_error,sd(j) / sqrt(length(j))), 2)
+    Median <- c(Median, median(j))
+}
+###round(,2) was used to reduce the mean and standard error to 2 decimal points
+knitr::kable(D <- data.frame(Spray, Insect_Number,  Mean, Standard_error, Median), caption = "Table 1. Insect count as a result of spray")
+```
+
+
+
+
+
+
+## Exercise 2: 
+Print a plot to see the differences of counts between sprays. Include a caption explaining the figure. Which type of plot is the one you choose and why?
+
+```{r,fig.cap= "Figure 1. Differences of counts between sprays",echo=FALSE}
+
+data("InsectSprays")
+plot(count ~ spray, data = InsectSprays, 
+     main = "Differences of count between sprays")
+
+##Boxplot was chosen because it shows how well distributed the data is dividing the data set into three quartiles (the minimum, maximum, median, first quartile 
+```
+
+
+
+
+
+
+## Exercise 3: 
+Test for differences between sprays using anova and a posthoc comparison and redo the previous plot including the representation of all posthoc differences.
+
+Note: for the anova use the command aov() and for the posthoc comparison use the Tukey’s ‘Honest Significant Difference’ method. For this method try the TukeyHSD() and the agricolae::HSD.test() and see the differences.
+
+
+###  ANOVA: res.aov1
+```{r, echo=FALSE}
+res.aov1 <- aov(count ~ spray, data = InsectSprays)
+summary(res.aov1)
+
+```
+
+
+###  TukeyHSD
+```{r, echo=FALSE}
+tukey.test1 <- TukeyHSD(res.aov1)
+print(tukey.test1)
+```
+
+###  agricolae::HSD.test
+```{r, fig.cap= "Figure 2. HSD.test for res.aov1", echo=FALSE}
+library(agricolae)
+ASD1 <- HSD.test(res.aov1, "spray", console = TRUE)
+##console = TRUE to display the result in the console
+
+###plot including the representation of all posthoc differences using HSD.test method
+plot(count ~ spray, data = InsectSprays, ylim = c(0,30), 
+     main = "HSD.test for res.aov1")
+text(x = 1:6 , y = 29, c("a", "a", "b", "b", "b", "a"))
+
+```
+
+
+
+## Exercise 4: 
+Test for differences between sprays using non-parametric 
+Kruskal-Wallis rank sum test. Again, redo the plot with these results. Use agricolae::kruskal()
+
+###  Summary
+```{r, fig.cap= "Figure 3. Kruskal-Wallis rank sum test between sprays", echo=FALSE}
+library(agricolae)
+data("InsectSprays")
+str(InsectSprays)
+krus <- kruskal(InsectSprays$count, trt = InsectSprays$spray)
+print(krus)
+ 
+##Making a plot for the easy presentation of the kruskal comparison
+plot(count ~ spray, data = InsectSprays, ylim = c(0,30), 
+     main = "Kruskal-Wallis rank sum test between sprays")
+text(x = 1:6 , y = 29, c("a", "a", "c", "b", "bc", "a"))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##  Exercise 5:
+Transform count data using sqrt(count) and redo the anova, the Tukey posthoc comparison and the plot.
+
+###  Transforming count data of InsectSprays using sqrt(count)
+```{r, echo=FALSE}
+sqct <- sqrt(InsectSprays$count) 
+sqct
+```
+
+###  ANOVA after count transformation using sqrt(count): res.aov2
+```{r, echo=FALSE}
+
+res.aov2 <- aov(sqct ~ spray, data = InsectSprays)
+summary(res.aov2)
+
+```
+
+### TukeyHSD
+```{r, echo=FALSE}
+tukey.test2 <- TukeyHSD(res.aov2)
+print(tukey.test2)
+
+```
+
+###  agricolae::HSD
+```{r,fig.cap=  "Figure 4.HSD:test for res.aov2", echo=FALSE}
+ASD2 <- HSD.test(res.aov2, "spray", console = TRUE)
+##console = TRUE to display the result in the console
+
+
+##plot of HSD:test after sqrt transformation
+plot(count ~ spray, data = InsectSprays, ylim = c(0,30), 
+     main= "HSD:test for res.aov2")
+text(x = 1:6 , y = 29, c("a", "a", "c", "b", "bc", "a"))
+
+
+
+```
+
+
+
+## Exercise 6:
+Test for normality of residuals for the two performed anova analyses of points 4 and 6 using shapiro.test() and use plot the anova to see the qqplots and compare them.
+
+###  Shapiro.test for the ANOVA res.aov1 
+```{r, echo=FALSE}
+shapiro.test(res.aov1$residuals)
+
+```
+
+###  Shapiro.test for the ANOVA res.aov2
+```{r,echo=FALSE }
+shapiro.test(res.aov2$residuals)
+```
+
+###  QQplot for comparison
+```{r,fig.cap= "Figure 5. QQplot for comparison for res.aov1 and res.aov2", echo=FALSE}
+qqnorm(res.aov1$residuals, main = "QQplot for res.aov1")
+qqline(res.aov1$residuals)
+qqnorm(res.aov2$residuals, main = "QQplot for res.aov2")
+qqline(res.aov2$residuals)
+
+```
+
+## Exercise 7:
+###  Which of the previous analysis is the adequate in this case? Why? 
+
+The ANOVA with the transformed count is adequate.It allowed us to prove normality. It was more accurate than the direct ANOVA into detecting significant differences between sprays. 
+For example, the diffence between spray C and spray D was detected. 
+
+###  Is there any difference in the results between the square root transformed ANOVA and the Kruskal-Wallis analyses? 
+There was no difference in the transformed ANOVA and the Kruskal-Wallis analyses. Both presented the same significance difference between the sprays using the alphabets. 
+
+###  Is there any difference in the results between the direct ANOVA and the square root transformed ANOVA? Which ones?
+There is a difference between the two ANOVAs. The square root transformed ANOVA (res.aov2) exposed the statistical difference between spray C and spray D which was not shown in the direct ANOVA (res.aov1)
+
+
+
+
+
+
+
+
+
